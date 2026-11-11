@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fitz Maintenance">
+<meta name="theme-color" content="#1f3a5f">
+<title>Fitz Maintenance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#f4f6f9; --card:#ffffff; --ink:#16202c; --muted:#64707e; --line:#e2e7ee;
+  --brand:#1f3a5f; --brand-ink:#ffffff; --accent:#d9822b;
+  --ok:#2f8f5b; --warn:#c7811d; --bad:#c2453b; --info:#3a6ea5;
+  --chip:#eef2f7; --radius:14px; --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f141b; --card:#18202b; --ink:#e8edf3; --muted:#9aa6b4; --line:#273242;
+    --brand:#7fa6d6; --brand-ink:#0f141b; --chip:#212b38; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f141b; --card:#18202b; --ink:#e8edf3; --muted:#9aa6b4; --line:#273242;
+  --brand:#7fa6d6; --brand-ink:#0f141b; --chip:#212b38; --shadow:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+a{color:var(--info)}
+header{position:sticky;top:0;z-index:5;background:var(--brand);color:var(--brand-ink);padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;gap:10px}
+header h1{font-size:17px;margin:0;font-weight:700;flex:1}
+header .who{font-size:13px;opacity:.85}
+header button{background:transparent;border:1px solid currentColor;color:inherit;border-radius:8px;padding:4px 10px;font:inherit;font-size:13px}
+main{max-width:760px;margin:0 auto;padding:14px 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sp{flex:1}
+.muted{color:var(--muted)} .small{font-size:13px}
+.chip{display:inline-block;background:var(--chip);border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600;color:var(--muted)}
+.chip.high{background:#fbe4e2;color:var(--bad)} .chip.med{background:#fdf0dc;color:var(--warn)}
+.chip.ok{background:#e1f2e8;color:var(--ok)} .chip.info{background:#e3edf8;color:var(--info)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .chip.high,:root:not([data-theme="light"]) .chip.med,:root:not([data-theme="light"]) .chip.ok,:root:not([data-theme="light"]) .chip.info{background:var(--chip)}}
+h2{font-size:18px;margin:4px 0 12px}
+h3{font-size:15px;margin:0 0 4px}
+.seg{display:flex;background:var(--chip);border-radius:10px;padding:3px;gap:3px;margin-bottom:12px}
+.seg button{flex:1;border:0;background:transparent;padding:7px 6px;border-radius:8px;font:inherit;font-weight:600;font-size:13px;color:var(--muted)}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+textarea{min-height:80px;resize:vertical}
+label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:10px 0 4px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:10px;padding:10px 14px;font:inherit;font-weight:600;background:var(--brand);color:var(--brand-ink);cursor:pointer}
+.btn.ghost{background:var(--chip);color:var(--ink)}
+.btn.danger{background:transparent;color:var(--bad);padding:6px 8px}
+.btn:disabled{opacity:.5}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.act a{display:inline-block;margin-right:12px;font-weight:600;text-decoration:none}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs button{flex:1;border:0;background:transparent;padding:9px 2px 8px;font:inherit;font-size:11px;font-weight:600;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
+nav.tabs button.on{color:var(--brand)}
+nav.tabs svg{width:22px;height:22px}
+.badge{position:absolute;top:4px;left:calc(50% + 6px);background:var(--accent);color:#fff;border-radius:999px;font-size:10px;padding:0 5px;line-height:16px}
+.empty{text-align:center;color:var(--muted);padding:28px 10px}
+.msg{padding:10px 0;border-bottom:1px solid var(--line)} .msg:last-child{border-bottom:0}
+.day{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:14px 2px 6px}
+.bubble{background:var(--chip);border-radius:12px;padding:8px 11px;margin:6px 0;max-width:88%}
+.bubble.me{background:var(--brand);color:var(--brand-ink);margin-left:auto}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:10px;font-size:14px;z-index:20;max-width:90vw}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px} .thumbs span{font-size:12px;background:var(--chip);border-radius:6px;padding:3px 7px}
+.login{max-width:420px;margin:12vh auto 0}
+.hidden{display:none!important}
+.total{font-size:22px;font-weight:700}
+</style>
+</head>
+<body>
+<header>
+  <h1>Fitz Maintenance</h1>
+  <span class="who" id="who"></span>
+  <button id="acctBtn" class="hidden">Account</button>
+  <button id="signout" class="hidden">Sign out</button>
+</header>
+
+<main id="login" class="login hidden">
+  <div class="card">
+    <h2>Sign in</h2>
+    <label for="email">Email</label>
+    <input id="email" type="email" autocomplete="username" placeholder="you@fitzassociates.com">
+    <label for="pw">Password</label>
+    <input id="pw" type="password" autocomplete="current-password">
+    <div style="margin-top:12px"><button class="btn" id="pwLogin" style="width:100%">Sign in</button></div>
+    <p class="muted small" style="margin:14px 0 6px">Forgot your password? Ask Sean, or get a one-time code by email:</p>
+    <button class="btn ghost" id="sendLink" style="width:100%">Email me a sign-in code</button>
+    <div id="codeBox" class="hidden">
+      <label for="code">6-digit code</label>
+      <input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456">
+      <div style="margin-top:12px"><button class="btn" id="verify" style="width:100%">Sign in</button></div>
+    </div>
+  </div>
+</main>
+
+<main id="app" class="hidden">
+  <div id="acctCard" class="card hidden">
+    <h3>Change your password</h3>
+    <label for="np1">New password (at least 10 characters)</label>
+    <input id="np1" type="password" autocomplete="new-password">
+    <label for="np2">Type it again</label>
+    <input id="np2" type="password" autocomplete="new-password">
+    <div class="row" style="margin-top:10px"><button class="btn" id="npSave">Save password</button><button class="btn ghost" id="npCancel">Cancel</button></div>
+  </div>
+  <!-- WORK ORDERS -->
+  <section id="tab-wo">
+    <div class="row"><h2 class="sp">Work orders</h2><span class="muted small" id="woCount"></span></div>
+    <div class="seg" id="woSeg">
+      <button data-f="open" class="on">Open</button><button data-f="mine">Mine</button><button data-f="all">All (incl. closed)</button>
+    </div>
+    <div id="woList"></div>
+    <p class="muted small">Update status and notes in DoorLoop — this list refreshes from DoorLoop every hour.</p>
+  </section>
+
+  <!-- COMMS -->
+  <section id="tab-comms" class="hidden">
+    <div class="row"><h2 class="sp">Calls &amp; texts</h2><span class="muted small">last 30 days</span></div>
+    <input id="commsSearch" placeholder="Search name, number or text">
+    <div id="commsList" style="margin-top:8px"></div>
+  </section>
+
+  <!-- CONTACTS -->
+  <section id="tab-contacts" class="hidden">
+    <div class="row"><h2 class="sp">Contacts</h2><button class="btn ghost" id="addVendor">+ Vendor</button></div>
+    <div class="seg" id="ctSeg"><button data-k="tenant" class="on">Tenants</button><button data-k="vendor">Vendors</button></div>
+    <input id="ctSearch" placeholder="Search name, unit, phone or company">
+    <div id="vendorForm" class="card hidden" style="margin-top:10px">
+      <h3 id="vfTitle">New vendor</h3>
+      <input type="hidden" id="vfId">
+      <label>Name</label><input id="vfName">
+      <label>Company</label><input id="vfCompany">
+      <div class="grid2"><div><label>Phone</label><input id="vfPhone" inputmode="tel"></div><div><label>Email</label><input id="vfEmail" type="email"></div></div>
+      <label>Notes (trade, rates, W-9 / insurance on file?)</label><textarea id="vfNotes"></textarea>
+      <div class="row" style="margin-top:10px"><button class="btn" id="vfSave">Save vendor</button><button class="btn ghost" id="vfCancel">Cancel</button></div>
+    </div>
+    <div id="ctList" style="margin-top:8px"></div>
+  </section>
+
+  <!-- REIMBURSE -->
+  <section id="tab-reimb" class="hidden">
+    <h2>Reimbursements</h2>
+    <p class="muted small" style="margin-top:-6px">Sean approves and pays these in Zoho Expense. Anything you submit here goes to Zoho within the hour, and anything you enter in the Zoho app shows up here too.</p>
+    <div class="card">
+      <h3>Submit a purchase</h3>
+      <p class="muted small" style="margin:0">For things you paid for yourself. Attach the receipt or invoice (photo or PDF).</p>
+      <div class="grid2">
+        <div><label>Date</label><input id="rDate" type="date"></div>
+        <div><label>Amount ($)</label><input id="rAmt" inputmode="decimal" placeholder="0.00"></div>
+      </div>
+      <label>Store / vendor</label><input id="rVendor" placeholder="Home Depot">
+      <div class="grid2">
+        <div><label>Property</label><select id="rProp"></select></div>
+        <div><label>Unit (optional)</label><select id="rUnit"><option value="">—</option></select></div>
+      </div>
+      <label>Work order (optional)</label><select id="rWO"><option value="">—</option></select>
+      <div class="grid2">
+        <div><label>Category</label><select id="rCat"><option>Materials</option><option>Tools</option><option>Supplies</option><option>Appliance parts</option><option>Fuel / mileage</option><option>Other</option></select></div>
+        <div><label>Paid with</label><select id="rPaid"><option>Personal card</option><option>Cash</option><option>Other</option></select></div>
+      </div>
+      <label>What was it for?</label><textarea id="rDesc" placeholder="Replacement faucet cartridge, Unit B2"></textarea>
+      <label>Receipt / invoice</label>
+      <input id="rFiles" type="file" accept="image/*,application/pdf" multiple>
+      <div class="thumbs" id="rThumbs"></div>
+      <div style="margin-top:12px"><button class="btn" id="rSubmit" style="width:100%">Submit for reimbursement</button></div>
+    </div>
+    <div class="card">
+      <div class="row"><h3 class="sp">My submissions</h3><span class="muted small">Waiting: <b id="rPending">$0.00</b></span></div>
+      <div id="rList"></div>
+    </div>
+  </section>
+
+  <!-- TEAM -->
+  <section id="tab-team" class="hidden">
+    <h2>Team messages</h2>
+    <div class="card" id="teamList" style="max-height:60vh;overflow:auto"></div>
+    <div class="card">
+      <label style="margin-top:0">To</label><select id="tTo"><option value="">Whole team</option></select>
+      <label>Message</label><textarea id="tBody" placeholder="Type a message"></textarea>
+      <div style="margin-top:10px"><button class="btn" id="tSend" style="width:100%">Send</button></div>
+      <p class="muted small" style="margin-bottom:0">Urgent? Also use RingCentral — messages here are checked a few times a day.</p>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs hidden" id="tabs">
+  <button data-t="wo" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>Work orders</button>
+  <button data-t="comms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Calls &amp; texts</button>
+  <button data-t="contacts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Contacts</button>
+  <button data-t="reimb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 3h16v18l-3-2-3 2-2-2-2 2-3-2-3 2z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Reimburse</button>
+  <button data-t="team"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20a6 6 0 0 1 12 0M15 20a4.5 4.5 0 0 1 7-3.7"/></svg>Team<span class="badge hidden" id="teamBadge"></span></button>
+</nav>
+
+<script>
+const SUPABASE_URL = "https://qydsauaalrgjkukgtqyb.supabase.co";
+const SUPABASE_KEY = "sb_publishable_IyI31GemzZoFG8iGybEq3A_u2plVhq5";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money = (n) => "$" + Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+const fmtTime = (d) => new Date(d).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+const daysAgo = (d) => d ? Math.floor((Date.now() - new Date(d)) / 86400000) : null;
+const telLink = (p) => String(p || "").replace(/[^\d+]/g, "");
+function toast(msg) { const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3200); }
+function safeStore(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch { return null; } }
+
+const state = { me: null, uid: null, wo: [], woAll: null, comms: [], contacts: { tenant: null, vendor: null }, ctKind: "tenant", woFilter: "open", props: [], units: [], team: [], files: [] };
+
+// ---------- Auth ----------
+async function boot() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return showLogin();
+  state.uid = session.user.id;
+  const { data, error } = await sb.rpc("my_access");
+  if (error || !data || !data.length) { showLogin(); toast("This email isn't set up yet — ask Sean."); await sb.auth.signOut(); return; }
+  state.me = { id: data[0].person_id, name: data[0].name, role: data[0].job_role, access: Object.fromEntries(data.map(r => [r.area, r.level])) };
+  $("who").textContent = state.me.name;
+  $("signout").classList.remove("hidden"); $("acctBtn").classList.remove("hidden");
+  $("login").classList.add("hidden"); $("app").classList.remove("hidden"); $("tabs").classList.remove("hidden");
+  showTab(safeStore("tab") || "wo");
+  loadWO(); loadLookups(); loadTeam(true);
+  setInterval(() => loadTeam(false), 60000);
+}
+function showLogin() {
+  $("login").classList.remove("hidden"); $("app").classList.add("hidden"); $("tabs").classList.add("hidden"); $("signout").classList.add("hidden"); $("who").textContent = "";
+  const saved = safeStore("email"); if (saved) $("email").value = saved;
+}
+$("sendLink").onclick = async () => {
+  const email = $("email").value.trim().toLowerCase();
+  if (!email) return toast("Enter your email");
+  safeStore("email", email);
+  $("sendLink").disabled = true;
+  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo: location.origin + location.pathname } });
+  $("sendLink").disabled = false;
+  if (error) return toast(error.message);
+  $("codeBox").classList.remove("hidden"); toast("Check your email for the code or link");
+};
+$("pwLogin").onclick = async () => {
+  const email = $("email").value.trim().toLowerCase();
+  if (!email || !$("pw").value) return toast("Enter your email and password");
+  safeStore("email", email);
+  $("pwLogin").disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email, password: $("pw").value });
+  $("pwLogin").disabled = false;
+  if (error) return toast(error.message === "Failed to fetch" ? "Can't reach the server - open this page from its web address, not as a file" : error.message);
+  $("pw").value = "";
+  boot();
+};
+$("pw").addEventListener("keydown", (e) => { if (e.key === "Enter") $("pwLogin").click(); });
+$("verify").onclick = async () => {
+  const { error } = await sb.auth.verifyOtp({ email: $("email").value.trim().toLowerCase(), token: $("code").value.trim(), type: "email" });
+  if (error) return toast(error.message);
+  boot();
+};
+$("signout").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+$("acctBtn").onclick = () => { $("acctCard").classList.toggle("hidden"); window.scrollTo(0, 0); };
+$("npCancel").onclick = () => { $("np1").value = ""; $("np2").value = ""; $("acctCard").classList.add("hidden"); };
+$("npSave").onclick = async () => {
+  const a = $("np1").value, b = $("np2").value;
+  if (a.length < 10) return toast("Use at least 10 characters");
+  if (a !== b) return toast("The two passwords don't match");
+  $("npSave").disabled = true;
+  const { error } = await sb.auth.updateUser({ password: a });
+  $("npSave").disabled = false;
+  if (error) return toast(error.message);
+  $("np1").value = ""; $("np2").value = ""; $("acctCard").classList.add("hidden");
+  toast("Password changed");
+};
+sb.auth.onAuthStateChange((evt) => { if (evt === "SIGNED_IN" && !state.me) boot(); });
+
+// ---------- Tabs ----------
+document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => showTab(b.dataset.t));
+function showTab(t) {
+  document.querySelectorAll("nav.tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
+  ["wo","comms","contacts","reimb","team"].forEach(x => $("tab-" + x).classList.toggle("hidden", x !== t));
+  safeStore("tab", t);
+  if (t === "comms" && !state.comms.length) loadComms();
+  if (t === "contacts" && !state.contacts[state.ctKind]) loadContacts();
+  if (t === "reimb") loadReimb();
+  if (t === "team") { loadTeam(true); }
+  window.scrollTo(0, 0);
+}
+
+// ---------- Work orders ----------
+document.querySelectorAll("#woSeg button").forEach(b => b.onclick = async () => {
+  document.querySelectorAll("#woSeg button").forEach(x => x.classList.toggle("on", x === b));
+  state.woFilter = b.dataset.f;
+  if (state.woFilter === "all" && !state.woAll) { const { data } = await sb.rpc("my_work_orders", { p_include_closed: true }); state.woAll = data || []; }
+  renderWO();
+});
+async function loadWO() {
+  const { data, error } = await sb.rpc("my_work_orders", { p_include_closed: false });
+  if (error) return toast(error.message);
+  state.wo = data || []; renderWO(); fillWOSelect();
+}
+function renderWO() {
+  let rows = state.woFilter === "all" ? state.woAll || [] : state.wo;
+  if (state.woFilter === "mine") rows = rows.filter(r => r.assigned_to_me);
+  $("woCount").textContent = rows.length + " shown";
+  if (!rows.length) { $("woList").innerHTML = `<div class="empty">Nothing here.</div>`; return; }
+  $("woList").innerHTML = rows.map(r => {
+    const age = daysAgo(r.created_at);
+    const pr = (r.priority || "").toUpperCase();
+    const prChip = pr === "HIGH" ? "high" : pr === "MEDIUM" ? "med" : "";
+    const typeLabel = { WORK_ORDER: "Work order", TENANT_REQUEST: "Tenant request", INTERNAL_TASK: "Internal task" }[r.type] || r.type || "";
+    const phone = (r.tenant_phones || [])[0];
+    return `<div class="card">
+      <div class="row"><span class="chip">${esc(typeLabel)}</span>${pr ? `<span class="chip ${prChip}">${esc(pr.toLowerCase())}</span>` : ""}
+        <span class="chip ${r.status === "COMPLETED" ? "ok" : "info"}">${esc((r.status || "").replace(/_/g, " ").toLowerCase())}</span>
+        ${r.assigned_to_me ? `<span class="chip ok">assigned to you</span>` : ""}<span class="sp"></span><span class="muted small">#${esc(r.reference || "")}</span></div>
+      <h3 style="margin-top:8px">${esc(r.subject)}</h3>
+      <div class="muted small">${esc(r.property || "")}${r.unit ? " · " + esc(r.unit) : ""}${age !== null ? ` · ${age === 0 ? "today" : age + " days open"}` : ""}${r.due_date ? " · due " + fmtDate(r.due_date) : ""}</div>
+      ${r.description ? `<p class="small" style="margin:8px 0 0;white-space:pre-wrap">${esc(r.description).slice(0, 600)}</p>` : ""}
+      ${r.tenant_name ? `<div class="act small" style="margin-top:8px"><span class="muted">Tenant: ${esc(r.tenant_name)}</span><br>${phone ? `<a href="tel:${telLink(phone)}">Call</a><a href="sms:${telLink(phone)}">Text</a>` : ""}</div>` : ""}
+    </div>`;
+  }).join("");
+}
+
+// ---------- Comms ----------
+async function loadComms() {
+  $("commsList").innerHTML = `<div class="empty">Loading…</div>`;
+  const { data, error } = await sb.rpc("my_comms", {});
+  if (error) return toast(error.message);
+  state.comms = data || []; renderComms();
+}
+$("commsSearch").oninput = () => renderComms();
+function renderComms() {
+  const q = $("commsSearch").value.trim().toLowerCase();
+  const rows = state.comms.filter(c => !q || [c.from_name, c.from_addr, (c.to_addrs || []).join(" "), c.snippet, c.body, c.subject, c.held_by].join(" ").toLowerCase().includes(q));
+  if (!rows.length) { $("commsList").innerHTML = `<div class="empty">No calls or texts found.</div>`; return; }
+  let html = "", lastDay = "";
+  for (const c of rows) {
+    const day = new Date(c.at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+    if (day !== lastDay) { if (lastDay) html += `</div>`; html += `<div class="day">${day}</div><div class="card">`; lastDay = day; }
+    const icon = { sms: "💬", call: "📞", voicemail: "🎙️", email: "✉️", note: "📝" }[c.channel] || "•";
+    const who = c.from_name || c.from_addr || "Unknown";
+    const text = c.channel === "sms" ? (c.body || c.snippet) : c.channel === "call" ? (c.snippet || "") + (c.duration_sec ? ` (${Math.round(c.duration_sec / 60)} min)` : "") : (c.subject ? c.subject + " — " : "") + (c.snippet || "");
+    const num = c.direction === "outbound" ? (c.to_addrs || [])[0] : c.from_addr;
+    html += `<div class="msg"><div class="row small"><b>${icon} ${esc(who)}</b><span class="muted">${esc(c.direction || "")}</span><span class="sp"></span><span class="muted">${fmtTime(c.at)}</span></div>
+      <div class="small" style="white-space:pre-wrap;margin-top:3px">${esc(text).slice(0, 500)}</div>
+      ${num && /\d{7}/.test(num) && c.channel !== "email" ? `<div class="act small" style="margin-top:4px"><a href="tel:${telLink(num)}">Call back</a><a href="sms:${telLink(num)}">Text</a></div>` : ""}</div>`;
+  }
+  $("commsList").innerHTML = html + `</div>`;
+}
+
+// ---------- Contacts ----------
+document.querySelectorAll("#ctSeg button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#ctSeg button").forEach(x => x.classList.toggle("on", x === b));
+  state.ctKind = b.dataset.k; if (!state.contacts[state.ctKind]) loadContacts(); else renderContacts();
+});
+$("ctSearch").oninput = () => renderContacts();
+async function loadContacts() {
+  $("ctList").innerHTML = `<div class="empty">Loading…</div>`;
+  const { data, error } = await sb.rpc("my_contacts", { p_kind: state.ctKind });
+  if (error) return toast(error.message);
+  state.contacts[state.ctKind] = data || []; renderContacts();
+}
+function renderContacts() {
+  const q = $("ctSearch").value.trim().toLowerCase();
+  const rows = (state.contacts[state.ctKind] || []).filter(c => !q || [c.name, c.company, (c.phones || []).join(" "), (c.emails || []).join(" "), (c.properties || []).join(" "), (c.units || []).join(" ")].join(" ").toLowerCase().includes(q));
+  if (!rows.length) { $("ctList").innerHTML = `<div class="empty">No matches.</div>`; return; }
+  const canEditVendors = state.me?.access?.vendors === "edit";
+  $("ctList").innerHTML = rows.slice(0, 300).map(c => {
+    const p = (c.phones || [])[0], e = (c.emails || [])[0];
+    const where = [(c.properties || []).join(", "), (c.units || []).join(", ")].filter(Boolean).join(" · ");
+    return `<div class="card" style="padding:12px">
+      <div class="row"><h3 class="sp" style="margin:0">${esc(c.name)}</h3>${c.kind === "vendor" && canEditVendors ? `<button class="btn ghost small" data-edit="${esc(c.id)}">Edit</button>` : ""}</div>
+      <div class="muted small">${esc(c.company || "")}${c.company && where ? " · " : ""}${esc(where)}</div>
+      <div class="act small" style="margin-top:6px">${p ? `<a href="tel:${telLink(p)}">Call ${esc(p)}</a><a href="sms:${telLink(p)}">Text</a>` : ""}${e ? `<a href="mailto:${esc(e)}">Email</a>` : ""}${!p && !e ? `<span class="muted">No phone or email on file</span>` : ""}</div>
+    </div>`;
+  }).join("");
+  $("ctList").querySelectorAll("[data-edit]").forEach(b => b.onclick = () => openVendor(rows.find(r => r.id === b.dataset.edit)));
+}
+$("addVendor").onclick = () => openVendor(null);
+$("vfCancel").onclick = () => $("vendorForm").classList.add("hidden");
+function openVendor(v) {
+  if (state.me?.access?.vendors !== "edit") return toast("You can't edit vendors");
+  $("vfTitle").textContent = v ? "Edit vendor" : "New vendor";
+  $("vfId").value = v?.id || ""; $("vfName").value = v?.name || ""; $("vfCompany").value = v?.company || "";
+  $("vfPhone").value = (v?.phones || [])[0] || ""; $("vfEmail").value = (v?.emails || [])[0] || ""; $("vfNotes").value = "";
+  $("vendorForm").classList.remove("hidden"); $("vfName").focus();
+}
+$("vfSave").onclick = async () => {
+  const id = $("vfId").value || null;
+  const existing = id ? (state.contacts.vendor || []).find(r => r.id === id) : null;
+  const phones = [$("vfPhone").value.trim(), ...((existing?.phones || []).slice(1))].filter(Boolean);
+  const emails = [$("vfEmail").value.trim(), ...((existing?.emails || []).slice(1))].filter(Boolean);
+  const { error } = await sb.rpc("save_vendor", { p_id: id, p_name: $("vfName").value, p_company: $("vfCompany").value || null, p_phones: phones, p_emails: emails, p_notes: $("vfNotes").value || null });
+  if (error) return toast(error.message);
+  toast("Vendor saved"); $("vendorForm").classList.add("hidden"); state.contacts.vendor = null;
+  if (state.ctKind === "vendor") loadContacts();
+};
+
+// ---------- Reimbursements ----------
+async function loadLookups() {
+  const [{ data: props }, { data: units }] = await Promise.all([
+    sb.from("properties").select("id,name").order("name"),
+    sb.from("units").select("id,label,property_id").order("label"),
+  ]);
+  state.props = props || []; state.units = units || [];
+  $("rProp").innerHTML = `<option value="">Choose…</option>` + state.props.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("");
+  $("rDate").value = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+$("rProp").onchange = () => {
+  const pid = $("rProp").value;
+  $("rUnit").innerHTML = `<option value="">—</option>` + state.units.filter(u => u.property_id === pid).map(u => `<option value="${esc(u.id)}">${esc(u.label)}</option>`).join("");
+  fillWOSelect();
+};
+function fillWOSelect() {
+  const pid = $("rProp").value; const propName = state.props.find(p => p.id === pid)?.name;
+  const rows = state.wo.filter(w => !pid || w.property === propName);
+  $("rWO").innerHTML = `<option value="">—</option>` + rows.map(w => `<option value="${esc(w.id)}">#${esc(w.reference)} ${esc(w.subject).slice(0, 60)}</option>`).join("");
+}
+$("rFiles").onchange = () => {
+  state.files = Array.from($("rFiles").files || []);
+  $("rThumbs").innerHTML = state.files.map(f => `<span>${esc(f.name)} · ${Math.round(f.size / 1024)} KB</span>`).join("");
+};
+$("rSubmit").onclick = async () => {
+  const amount = parseFloat(String($("rAmt").value).replace(/[$,]/g, ""));
+  if (!$("rDate").value || !$("rVendor").value.trim() || !(amount > 0) || !$("rProp").value) return toast("Fill in date, store, amount and property");
+  if (!state.files.length && !confirm("No receipt attached. Submit anyway?")) return;
+  const btn = $("rSubmit"); btn.disabled = true; btn.textContent = "Uploading…";
+  try {
+    const paths = [];
+    for (const f of state.files) {
+      if (f.size > 15 * 1024 * 1024) throw new Error(f.name + " is over 15 MB");
+      const clean = f.name.replace(/[^\w.\-]+/g, "_").slice(-80);
+      const path = `${state.uid}/${$("rDate").value}_${crypto.randomUUID().slice(0, 8)}_${clean}`;
+      const { error } = await sb.storage.from("receipts").upload(path, f, { contentType: f.type || "application/octet-stream", upsert: false });
+      if (error) throw error;
+      paths.push(path);
+    }
+    const { error } = await sb.from("reimbursements").insert({
+      purchase_date: $("rDate").value, vendor_name: $("rVendor").value.trim(), amount,
+      property_id: $("rProp").value, unit_id: $("rUnit").value || null, task_id: $("rWO").value || null,
+      category: $("rCat").value, paid_with: $("rPaid").value, description: $("rDesc").value.trim() || null, receipt_paths: paths,
+    });
+    if (error) throw error;
+    toast("Submitted — Sean will review it");
+    ["rAmt", "rVendor", "rDesc"].forEach(id => $(id).value = ""); $("rFiles").value = ""; state.files = []; $("rThumbs").innerHTML = "";
+    loadReimb();
+  } catch (e) { toast(e.message || String(e)); }
+  btn.disabled = false; btn.textContent = "Submit for reimbursement";
+};
+async function loadReimb() {
+  const { data, error } = await sb.from("reimbursements").select("*").order("submitted_at", { ascending: false }).limit(100);
+  if (error) return toast(error.message);
+  const rows = data || [];
+  $("rPending").textContent = money(rows.filter(r => r.status === "submitted" || r.status === "approved").reduce((s, r) => s + Number(r.amount), 0));
+  if (!rows.length) { $("rList").innerHTML = `<div class="empty">Nothing submitted yet.</div>`; return; }
+  const chip = { submitted: "info", approved: "med", paid: "ok", rejected: "high" };
+  $("rList").innerHTML = rows.map(r => `<div class="msg">
+    <div class="row"><b>${money(r.amount)}</b><span>${esc(r.vendor_name)}</span><span class="sp"></span><span class="chip ${chip[r.status]}">${esc(r.status)}</span></div>
+    <div class="muted small">${fmtDate(r.purchase_date)} · ${esc(state.props.find(p => p.id === r.property_id)?.name || "")} · ${esc(r.category || "")} · ${r.source === "zoho" ? "entered in Zoho Expense" : r.receipt_paths.length + " receipt" + (r.receipt_paths.length === 1 ? "" : "s")}${r.zoho_report_number ? " · Zoho " + esc(r.zoho_report_number) : r.source === "dashboard" && !r.zoho_expense_id ? " · sending to Zoho…" : ""}</div>
+    ${r.description ? `<div class="small">${esc(r.description)}</div>` : ""}
+    ${r.review_note ? `<div class="small"><b>Note from Sean:</b> ${esc(r.review_note)}</div>` : ""}
+    ${r.status === "paid" && r.paid_at ? `<div class="small muted">Paid ${fmtDate(r.paid_at)}${r.paid_ref ? " · " + esc(r.paid_ref) : ""}</div>` : ""}
+    <div class="act small" style="margin-top:4px">${r.receipt_paths.map((p, i) => `<a href="#" data-rc="${esc(p)}">Receipt ${i + 1}</a>`).join("")}${r.status === "submitted" && r.source === "dashboard" && !r.zoho_expense_id ? `<button class="btn danger small" data-del="${r.id}">Withdraw</button>` : ""}</div>
+  </div>`).join("");
+  $("rList").querySelectorAll("[data-rc]").forEach(a => a.onclick = async (ev) => {
+    ev.preventDefault();
+    const { data, error } = await sb.storage.from("receipts").createSignedUrl(a.dataset.rc, 300);
+    if (error) return toast(error.message); window.open(data.signedUrl, "_blank");
+  });
+  $("rList").querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
+    if (!confirm("Withdraw this submission?")) return;
+    const row = rows.find(r => r.id === b.dataset.del);
+    const { error } = await sb.from("reimbursements").delete().eq("id", b.dataset.del);
+    if (error) return toast(error.message);
+    if (row?.receipt_paths?.length) await sb.storage.from("receipts").remove(row.receipt_paths);
+    loadReimb();
+  });
+}
+
+// ---------- Team ----------
+async function loadTeam(full) {
+  if (full && !state.team.length) {
+    const { data } = await sb.rpc("team_directory");
+    state.team = data || [];
+    $("tTo").innerHTML = `<option value="">Whole team</option>` + state.team.filter(p => p.id !== state.me.id).map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join("");
+  }
+  const { data, error } = await sb.from("team_messages").select("*").order("at", { ascending: false }).limit(150);
+  if (error) return;
+  const rows = (data || []).reverse();
+  const unread = rows.filter(m => m.author_id !== state.me.id && !(m.read_by || []).includes(state.me.id));
+  const onTeam = !$("tab-team").classList.contains("hidden");
+  $("teamBadge").textContent = unread.length; $("teamBadge").classList.toggle("hidden", !unread.length || onTeam);
+  const name = (id) => state.team.find(p => p.id === id)?.name || "Team";
+  $("teamList").innerHTML = rows.length ? rows.map(m => `<div class="bubble ${m.author_id === state.me.id ? "me" : ""}">
+      <div class="small" style="opacity:.8"><b>${esc(name(m.author_id))}</b>${m.to_ids?.length ? " → " + m.to_ids.map(name).map(esc).join(", ") : ""} · ${fmtDate(m.at)} ${fmtTime(m.at)}</div>
+      <div style="white-space:pre-wrap">${esc(m.body)}</div></div>`).join("") : `<div class="empty">No messages yet.</div>`;
+  if (onTeam) { $("teamList").scrollTop = $("teamList").scrollHeight; if (unread.length) sb.rpc("mark_messages_read", { p_ids: unread.map(m => m.id) }); }
+}
+$("tSend").onclick = async () => {
+  const body = $("tBody").value.trim(); if (!body) return;
+  const to = $("tTo").value;
+  const { error } = await sb.from("team_messages").insert({ body, to_ids: to ? [to] : [] });
+  if (error) return toast(error.message);
+  $("tBody").value = ""; loadTeam(false);
+};
+
+boot();
+</script>
+</body>
+</html>
